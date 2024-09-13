@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Sockets</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<h1>Test:</h1>
+<button id="ws-open">
+    Open Connection
+</button>
+<button id="ws-close">
+    Close Connection
+</button>
+<button id="ws-clear">
+    Clear Console
+</button>
+
+<div>
+    <button id="ws-login">Login</button>
+    <button id="ws-relogin">ReLogin</button>
+    <button id="ws-register">Register</button>
+    <button id="ws-logout">Logout</button>
+</div>
+<div>
+    <button id="ws-check-status">Check online status</button>
+    <button id="ws-send-message">Send message</button>
+    <button id="ws-get-message">Get message</button>
+</div>
+<div>
+    <button id="ws-get-friend">Get friends list</button>
+    <button id="ws-get-friend-request">Get friend request that are pending</button>
+    <button id="ws-send-friend-request">Send friend request</button>
+    <button id="ws-accept-friend-request">Accept the friend request</button>
+    <button id="ws-reject-friend-request">Reject the friend request</button>
+    <button id="ws-check-friend-status">Check others status as friend</button>
+</div>
+<form id="ws-message" class="input-block">
+    <textarea id="ws-input" rows="10" cols="100"></textarea>
+    <button id="ws-send" type="submit">
+        Send message
+    </button>
+</form>
+<p>Console:</p>
+<pre id="messages" style="border: 1px solid black"></pre>
+<script src="/js/app.js"></script>
+</body>
+</html>
