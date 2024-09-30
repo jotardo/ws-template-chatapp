@@ -26,6 +26,7 @@
     const wsRejectFriendRequest = <HTMLButtonElement>document.getElementById('ws-reject-friend-request');
     const wsCheckFriendStatus = <HTMLButtonElement>document.getElementById('ws-check-friend-status');
     const wsCheckStatus = <HTMLButtonElement>document.getElementById('ws-check-status');
+    const wsGetFriendSuggest = <HTMLButtonElement>document.getElementById('ws-get-friend-suggest');
 
     function ping() {
         if (!ws) return;
@@ -130,6 +131,7 @@
     wsSendMessage.addEventListener('click', () => wsInput.value = JSON.stringify({type:"SEND_MESSAGE", data: {to:"", content: ""}}))
     wsGetMessage.addEventListener('click', () => wsInput.value = JSON.stringify({type:"GET_MESSAGE", data: {username:"", page: 1}}))
     wsGetFriend.addEventListener('click', () => wsInput.value = JSON.stringify({type:"GET_FRIEND_LIST", data: {page: 1}}))
+    wsGetFriendSuggest.addEventListener('click', () => wsInput.value = JSON.stringify({type:"GET_FRIEND_SUGGESTION", data: {page: 1}}))
     wsGetFriendRequest.addEventListener('click', () => wsInput.value = JSON.stringify({type:"GET_FRIEND_REQUEST", data: {page: 1}}))
     wsSendFriendRequest.addEventListener('click', () => wsInput.value = JSON.stringify({type:"SEND_FRIEND_REQUEST", data: {to:""}}))
     wsAcceptFriendRequest.addEventListener('click', () => wsInput.value = JSON.stringify({type:"ACCEPT_FRIEND_REQUEST", data: {from:""}}))

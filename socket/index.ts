@@ -1,6 +1,7 @@
 import WebSocket, {WebSocketServer} from "ws";
 import {Server} from "http";
 import {onSocketMessage} from "./message-handle";
+import {updateLastOnline} from "../database";
 
 export const PING_INTERVAL = 1000 * 10;
 export const PING_DATA = 1;
@@ -50,8 +51,10 @@ export default function configureSocket(server: Server) {
         ws.on('error', onSocketPostError);
         ws.on('message', (data, isBinary) => onSocketMessage(wss, ws, data, isBinary));
         ws.on('close', () => {
-            ws.username = "";
-            onSocketClose();
+            updateLastOnline(ws.username).finally(() => {
+                ws.username = "";
+                onSocketClose();
+            });
         });
     });
 

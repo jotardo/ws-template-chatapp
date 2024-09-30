@@ -6,10 +6,18 @@ import {
     getFriendList,
     getFriendStatus,
     getMessage,
-    getPendingFriendRequest,
-    getUserByUsernameAndPass, getUserByUsername,
-    registerUser, rejectFriendRequest, sendFriendRequest,
-    sendMessage, updateReloginCode, getUserByUsernameAndCode, updateLastOnline
+    getActiveFriendRequest,
+    getUserByUsernameAndPass,
+    getUserByUsername,
+    registerUser,
+    rejectFriendRequest,
+    sendFriendRequest,
+    sendMessage,
+    updateReloginCode,
+    getUserByUsernameAndCode,
+    updateLastOnline,
+    getNotFriendList,
+    getPendingFriendRequest, getMessageLatest
 } from "../database";
 
 function makeid(length:number) {
@@ -90,6 +98,8 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                 response.data.code = newCode;
                 if (data) {
                     currentSocket.username = data[0].username;
+                    response.data.lastLoginDate = data[0].lastOnlineDate;
+                    response.data.profilePicture = data[0].profilePicture;
                 }
                 await updateReloginCode(request.data.username, newCode);
             } else {
@@ -128,6 +138,8 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                 response.data.code = newCode;
                 if (data) {
                     currentSocket.username = data[0].username;
+                    response.data.lastLoginDate = data[0].lastOnlineDate;
+                    response.data.profilePicture = data[0].profilePicture;
                 }
             } else {
                 response.data.message = "Username and/or password is not correct";
@@ -202,6 +214,25 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
         }
     }
 
+    async function doGetMessageLatest() {
+        if (!request) return;
+        if (currentSocket.username == null || currentSocket.username === "") {
+            response.data.success = false;
+            response.data.message = "You are not logged in!";
+        }
+        else if (!request.data.page) {
+            response.data.success = false;
+            response.data.message = `No "page" found.`;
+        }
+        else {
+            const messageResult = await getMessageLatest(currentSocket.username, request.data.page);
+            response.data.success = messageResult != null;
+            response.data.message = `Get latest chat successfully.`;
+            response.data.data = messageResult;
+        }
+        ws.send(JSON.stringify(response));
+    }
+
     async function doGetMessage() {
         if (!request) return;
         if (!(request.data.username && request.data.page)) {
@@ -246,6 +277,25 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
         ws.send(JSON.stringify(response));
     }
 
+    async function doGetNonFriends() {
+        if (!request) return;
+        if (currentSocket.username == null || currentSocket.username === "") {
+            response.data.success = false;
+            response.data.message = "You are not logged in!";
+        }
+        else if (!request.data.page) {
+            response.data.success = false;
+            response.data.message = `No "page" found.`;
+        }
+        else {
+            const messageResult = await getNotFriendList(currentSocket.username, request.data.page);
+            response.data.success = messageResult != null;
+            response.data.message = `Get suggestion successfully.`;
+            response.data.data = messageResult;
+        }
+        ws.send(JSON.stringify(response));
+    }
+
     async function doCheckFriendStatus() {
         if (!request) return;
         if (!request.data.username) {
@@ -274,6 +324,25 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
     }
 
     async function doGetFriendRequest() {
+        if (!request) return;
+        if (currentSocket.username == null || currentSocket.username === "") {
+            response.data.success = false;
+            response.data.message = "You are not logged in!";
+        }
+        else if (!request.data.page) {
+            response.data.success = false;
+            response.data.message = `No "page" found.`;
+        }
+        else {
+            const messageResult = await getActiveFriendRequest(currentSocket.username, request.data.page);
+            response.data.success = messageResult != null;
+            response.data.message = `Get active friend request successfully.`;
+            response.data.data = messageResult;
+        }
+        ws.send(JSON.stringify(response));
+    }
+
+    async function doGetPendingFriendRequest() {
         if (!request) return;
         if (currentSocket.username == null || currentSocket.username === "") {
             response.data.success = false;
@@ -319,12 +388,13 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                 else {
                     let result = await sendFriendRequest(currentSocket.username, request.data.to);
                     response.data.success = result;
-                    response.data.message = result ? `Send friend request to "${request.data.to}" successfully.` : `Something is wrong sending message to "${request.data.to}"`;
+                    response.data.username = request.data.to;
+                    response.data.message = result ? `Send friend request to "${request.data.to}" successfully.` : `Something is wrong sending friend request to "${request.data.to}"`;
                     ws.send(JSON.stringify(response));
 
                     let response2: SocketResponse = {
                         type: "RECEIVE_FRIEND_REQUEST",
-                        data: {from: currentSocket.username, to: request.data.to, content: request.data.content, success: true, message: "Received a friend request"}
+                        data: {from: exists, success: true, message: "Received a friend request"}
                     };
                     wss.clients.forEach((wsItem) => {
                         let wse = wsItem as WebSocketExt;
@@ -363,6 +433,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
             else {
                 let result = await acceptFriendRequest(request.data.from, currentSocket.username);
                 response.data.success = result;
+                response.data.username = request.data.from;
                 response.data.message = result ? `Accept friend request from "${request.data.from}" successfully.` : `Something is wrong sending message to "${request.data.from}"`;
                 ws.send(JSON.stringify(response));
 
@@ -405,6 +476,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
             else {
                 let result = await rejectFriendRequest(request.data.from, currentSocket.username);
                 response.data.success = result;
+                response.data.username = request.data.from;
                 response.data.message = result ? `Rejected friend request from  "${request.data.from}" successfully.` : `Something is wrong rejecting "${request.data.from}" friend request`;
                 ws.send(JSON.stringify(response));
 
@@ -436,10 +508,16 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
         await doSendMessage();
     } else if (request.type === "GET_MESSAGE") {
         await doGetMessage();
+    } else if (request.type === "GET_MESSAGE_LATEST") {
+        await doGetMessageLatest();
     } else if (request.type === "GET_FRIEND_LIST") {
         await doGetFriends();
+    } else if (request.type === "GET_FRIEND_SUGGESTION") {
+        await doGetNonFriends();
     } else if (request.type === "GET_FRIEND_REQUEST") {
         await doGetFriendRequest();
+    } else if (request.type === "GET_PENDING_REQUEST") {
+        await doGetPendingFriendRequest();
     } else if (request.type === "CHECK_FRIEND_STATUS") {
         await doCheckFriendStatus();
     } else if (request.type === "SEND_FRIEND_REQUEST") {

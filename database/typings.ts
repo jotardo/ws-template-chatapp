@@ -5,6 +5,7 @@ export interface User {
     creationDate: Date,
     lastOnlineDate: Date,
     reloginCode: string,
+    profilePicture: string,
 }
 
 export type Message = {
