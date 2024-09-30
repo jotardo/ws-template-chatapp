@@ -3,7 +3,7 @@
         pingTimeout: NodeJS.Timeout;
     }
     let ws: WebSocketExt | null;
-    const PING_TIMEOUT = 1000 * 10 + 1000 * 1;
+    const PING_TIMEOUT = 1000 * 10 + 1000;
     const PING_DATA = 1;
     const messages = <HTMLElement>document.getElementById('messages');
     const wsOpen = <HTMLButtonElement>document.getElementById('ws-open');
@@ -61,7 +61,7 @@
     wsOpen.addEventListener('click', () => {
         closeConnection();
 
-        ws = new WebSocket('ws://localhost:4000/chat') as WebSocketExt;
+        ws = new WebSocket(`ws://${window.location.hostname}/chat`) as WebSocketExt;
 
         ws.addEventListener('error', () => {
             showMessage('WebSocket error');
