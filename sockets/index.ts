@@ -16,6 +16,11 @@ function ping(ws: WebSocket) {
     ws.send(HEARTBEAT_VALUE, { binary: true });
 }
 
+
+interface WebSocketExt extends WebSocket{
+    isAlive: boolean
+}
+
 export default function configure(s: Server) {
     const wss = new WebSocketServer({ noServer: true });
 
@@ -36,14 +41,15 @@ export default function configure(s: Server) {
     });
 
     wss.on('connection', (ws, req) => {
-        ws.isAlive = true;
+        const wsExt = ws as WebSocketExt;
+        wsExt.isAlive = true;
 
         ws.on('error', onSocketPostError);
 
         ws.on('message', (msg, isBinary) => {
             if (isBinary && (msg as any)[0] === HEARTBEAT_VALUE) {
                 // console.log('pong');
-                ws.isAlive = true;
+                wsExt.isAlive = true;
             } else {
                 wss.clients.forEach((client) => {
                     if (client.readyState === WebSocket.OPEN) {
@@ -61,12 +67,13 @@ export default function configure(s: Server) {
     const interval = setInterval(() => {
         // console.log('firing interval');
         wss.clients.forEach((client) => {
-            if (!client.isAlive) {
+            const clientExt = client as WebSocketExt;
+            if (!clientExt.isAlive) {
                 client.terminate();
                 return;
             }
 
-            client.isAlive = false;
+            clientExt.isAlive = false;
             ping(client);
         });
     }, HEARTBEAT_INTERVAL);

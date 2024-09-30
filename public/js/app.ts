@@ -8,7 +8,6 @@
     const messages = <HTMLElement>document.getElementById('messages');
     const wsOpen = <HTMLButtonElement>document.getElementById('ws-open');
     const wsClose = <HTMLButtonElement>document.getElementById('ws-close');
-    const wsSend = <HTMLButtonElement>document.getElementById('ws-send');
     const wsInput = <HTMLTextAreaElement>document.getElementById('ws-input');
     const wsClear = <HTMLTextAreaElement>document.getElementById('ws-clear');
     const wsMessage = <HTMLFormElement>document.getElementById('ws-message');
