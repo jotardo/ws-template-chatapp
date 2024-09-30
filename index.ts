@@ -10,6 +10,7 @@ const app = express();
 const ws_port = process.env.WS_PORT || 3000;
 const peer_port = process.env.PEER_PORT || 9000;
 const db_config:ConnectionOptions = {
+    host: process.env.DB_URL || "localhost",
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASS || "",
     database: process.env.DB_NAME || "chatapp",
