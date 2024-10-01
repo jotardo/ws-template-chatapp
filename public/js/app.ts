@@ -60,11 +60,10 @@
 
     wsOpen.addEventListener('click', () => {
         closeConnection();
+        ws = new WebSocket(`wss://${window.location.hostname}${window.location.hostname === "localhost" ? `:4000` : ""}/chat`) as WebSocketExt;
 
-        ws = new WebSocket(`ws://${window.location.hostname}/chat`) as WebSocketExt;
-
-        ws.addEventListener('error', () => {
-            showMessage('WebSocket error');
+        ws.addEventListener('error', (ev) => {
+            showMessage('WebSocket error' + JSON.stringify(ev));
         });
 
         ws.addEventListener('open', () => {
