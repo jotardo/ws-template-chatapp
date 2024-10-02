@@ -13,7 +13,7 @@ interface WebSocketExt extends WebSocket {
 
 export default function configureSocket(server: Server) {
     let interval:NodeJS.Timeout;
-    const wss = new WebSocketServer({noServer: true, path: "/chat"});
+    const wss = new WebSocketServer({path: "/chat", noServer: true});
     const onSocketPreError = (err: Error) => console.warn(err);
     const onSocketPostError = (err: Error) => console.error(err);
     const onSocketClose = () => {
@@ -35,6 +35,7 @@ export default function configureSocket(server: Server) {
         }
         // It is good, so I should upgrade from socket to websocket
         wss.handleUpgrade(request, socket, head, (websocket) => {
+            console.log("Yay")
             socket.removeListener('error', onSocketPreError);
             wss.emit('connection', websocket, request);
         });

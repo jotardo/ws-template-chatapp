@@ -32,6 +32,6 @@ app.use('/', peerJSServer);
 
 // Configuration
 configureRouter(app);
-configureDatabase(db_config);
 configureSocket(wsServer);
+configureDatabase(db_config);
 console.log(`Attempting to run WS server on port ${ws_port} and PeerJS server on port ${peer_port}`);
