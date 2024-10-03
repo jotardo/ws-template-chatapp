@@ -7,7 +7,7 @@ import {ExpressPeerServer, IConfig} from "peer";
 
 // Variables
 const app = express();
-const ws_port = process.env.WS_PORT || 3000;
+const ws_port = process.env.WS_PORT || 4000;
 const peer_port = process.env.PEER_PORT || 9000;
 const db_config:ClientConfig = {
     host: process.env.DB_URL || "localhost",
@@ -16,9 +16,7 @@ const db_config:ClientConfig = {
     database: process.env.DB_NAME || "chatapp",
     port: parseInt(process.env.DB_PORT || "5432"),
     query_timeout: 3000,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: false
 };
 const peer_config:Partial<IConfig> = {
     path: '/call',
