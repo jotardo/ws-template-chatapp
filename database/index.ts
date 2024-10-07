@@ -1,25 +1,24 @@
-// import mysql, {ConnectionOptions, Pool, ResultSetHeader, RowDataPacket} from "mysql2/promise";
 import pg from "pg";
 import {Message, User} from "./typings";
 let connection: pg.Client;
 
 // User
-const querySelectUserAndRelogin:string = "SELECT \"id\", \"username\", \"lastOnlineDate\", \"profilePicture\", \"reloginCode\" FROM \"user\" WHERE \"username\" = $1 AND \"reloginCode\" = $2";
+const querySelectUserAndRelogin:string = "SELECT u.\"id\", \"username\", \"lastOnlineDate\", \"profilePicture\", \"reloginCode\", \"firstName\", \"lastName\" FROM \"user\" u LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE \"username\" = $1 AND \"reloginCode\" = $2";
 const queryAddUser:string = "INSERT INTO \"user\"(\"username\", \"password\", \"creationDate\") VALUES ($1, $2, NOW())";
-const querySelectUserAndPass:string = "SELECT \"id\", \"username\", \"lastOnlineDate\", \"reloginCode\", \"profilePicture\" FROM \"user\" WHERE \"username\" = $1 AND \"password\" = $2";
-const querySelectUser:string = "SELECT \"id\", \"username\", \"reloginCode\", \"creationDate\", \"lastOnlineDate\" FROM \"user\" WHERE \"username\" = $1";
+const querySelectUserAndPass:string = "SELECT u.\"id\", \"username\", \"lastOnlineDate\", \"reloginCode\", \"profilePicture\", \"firstName\", \"lastName\" FROM \"user\" u LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE \"username\" = $1 AND \"password\" = $2";
+const querySelectUser:string = "SELECT u.\"id\", \"profilePicture\", \"username\", \"reloginCode\", \"creationDate\", \"lastOnlineDate\", \"profilePicture\", \"firstName\", \"lastName\" FROM \"user\" u LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE \"username\" = $1";
 const queryUpdateReloginCode:string = "UPDATE \"user\" SET \"reloginCode\" = $1 WHERE \"id\" = $2";
 const queryUpdateLastOnline:string = "UPDATE \"user\" SET \"lastOnlineDate\" = NOW() WHERE \"id\" = $1";
 // Messages
 const queryAddMessage:string = "INSERT INTO \"message\"(\"from\", \"to\", \"content\") VALUES ($1, $2, $3)";
 const queryGetMessageInPages:string = "SELECT m.\"id\", u1.\"username\" \"from\", u2.\"username\" \"to\", \"content\", \"at\" FROM \"message\" m INNER JOIN \"user\" u1 ON m.\"from\" = u1.\"id\" INNER JOIN \"user\" u2 ON m.\"to\" = u2.\"id\"  WHERE \"deleted\" = 0 AND (\"from\" = $1 AND \"to\" = $2) OR (\"from\" = $3 AND \"to\" = $4) ORDER BY \"at\" DESC LIMIT $5 OFFSET $6";
-const queryGetMessageLatest:string = "SELECT u.\"username\", u.\"profilePicture\", u.\"lastOnlineDate\", m.* FROM \"message\" m RIGHT JOIN \"user\" u ON (m.\"to\" = u.\"id\" AND m.\"from\" = $1) OR (m.\"from\" = u.\"id\" AND m.\"to\" = $2) WHERE \"deleted\" = 0 AND \"at\" IN (SELECT MAX(\"at\") \"at\" FROM(SELECT \"to\" \"id\", MAX(\"at\") \"at\" FROM \"message\" WHERE \"from\" = $3 GROUP BY \"to\" UNION SELECT \"from\" \"id\", MAX(\"at\") \"at\" FROM \"message\" WHERE \"to\" = $4 GROUP BY \"from\") AS list GROUP BY list.\"id\") ORDER BY \"at\" DESC LIMIT $5 OFFSET $6";
+const queryGetMessageLatest:string = "SELECT u.\"username\", \"profilePicture\", u.\"lastOnlineDate\", \"firstName\", \"lastName\", m.* FROM \"message\" m RIGHT JOIN \"user\" u ON (m.\"to\" = u.\"id\" AND m.\"from\" = $1) OR (m.\"from\" = u.\"id\" AND m.\"to\" = $2) LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE \"deleted\" = 0 AND \"at\" IN (SELECT MAX(\"at\") \"at\" FROM(SELECT \"to\" \"id\", MAX(\"at\") \"at\" FROM \"message\" WHERE \"from\" = $3 GROUP BY \"to\" UNION SELECT \"from\" \"id\", MAX(\"at\") \"at\" FROM \"message\" WHERE \"to\" = $4 GROUP BY \"from\") AS list GROUP BY list.\"id\") ORDER BY \"at\" DESC LIMIT $5 OFFSET $6";
 // Friends
-const queryGetFriendList:string = "SELECT DISTINCT u.\"id\", u.\"username\", u.\"creationDate\", u.\"lastOnlineDate\", u.\"profilePicture\" FROM \"user\" u RIGHT JOIN \"friend\" f ON u.\"id\" = f.\"to\" LEFT JOIN \"friend\" f2 on u.\"id\" = f2.\"from\" WHERE (f.\"from\" = $1 AND f.\"accepted\" = 1) OR (f2.\"to\" = $2 AND f2.\"accepted\" = 1) ORDER BY u.\"creationDate\" DESC LIMIT $3 OFFSET $4";
-const queryGetNotFriendSelect:string = "SELECT u.\"id\", u.\"username\", u.\"creationDate\", u.\"lastOnlineDate\", u.\"profilePicture\" FROM \"user\" u WHERE u.\"id\" != $1 AND u.\"id\" NOT IN (SELECT DISTINCT u.\"id\" FROM \"user\" u RIGHT JOIN \"friend\" f ON u.\"id\" = f.\"to\" LEFT JOIN \"friend\" f2 on u.\"id\" = f2.\"from\"  WHERE (f.\"from\" = $2 AND (f.\"accepted\" = 1 OR f.\"accepted\" = 0)) OR (f2.\"to\" = $3 AND (f2.\"accepted\" = 1 OR f2.\"accepted\" = 0))) ORDER BY \"lastOnlineDate\" DESC LIMIT $4 OFFSET $5";
+const queryGetFriendList:string = "SELECT DISTINCT u.\"id\", u.\"username\", u.\"creationDate\", u.\"lastOnlineDate\", \"profilePicture\", \"firstName\", \"lastName\" FROM \"user\" u RIGHT JOIN \"friend\" f ON u.\"id\" = f.\"to\" LEFT JOIN \"friend\" f2 on u.\"id\" = f2.\"from\" LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE (f.\"from\" = $1 AND f.\"accepted\" = 1) OR (f2.\"to\" = $2 AND f2.\"accepted\" = 1) ORDER BY u.\"creationDate\" DESC LIMIT $3 OFFSET $4";
+const queryGetNotFriendSelect:string = "SELECT u.\"id\", u.\"username\", u.\"creationDate\", u.\"lastOnlineDate\", \"profilePicture\", \"firstName\", \"lastName\" FROM \"user\" u LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE u.\"id\" != $1 AND u.\"id\" NOT IN (SELECT DISTINCT u.\"id\" FROM \"user\" u RIGHT JOIN \"friend\" f ON u.\"id\" = f.\"to\" LEFT JOIN \"friend\" f2 on u.\"id\" = f2.\"from\"  WHERE (f.\"from\" = $2 AND (f.\"accepted\" = 1 OR f.\"accepted\" = 0)) OR (f2.\"to\" = $3 AND (f2.\"accepted\" = 1 OR f2.\"accepted\" = 0))) ORDER BY \"lastOnlineDate\" DESC LIMIT $4 OFFSET $5";
 const queryGetFriendStatus:string = "SELECT \"accepted\" FROM \"friend\" WHERE (\"from\" = $1 AND \"to\" = $2) OR (\"from\" = $3 AND \"to\" = $4) ORDER BY \"creationDate\" DESC LIMIT 1";
-const queryGetActiveFriendRequestList:string = "SELECT u.\"id\", u.\"username\", u.\"creationDate\", u.\"profilePicture\" FROM \"friend\" f INNER JOIN \"user\" u ON f.\"from\" = u.\"id\" WHERE f.\"accepted\" = 0 AND f.\"to\" = $1 ORDER BY f.\"creationDate\" DESC LIMIT $2 OFFSET $3";
-const queryGetPendingFriendRequestList:string = "SELECT u.\"id\", u.\"username\", u.\"creationDate\", u.\"profilePicture\" FROM \"friend\" f INNER JOIN \"user\" u ON f.\"to\" = u.\"id\" WHERE f.\"accepted\" = 0 AND f.\"from\" = $1 ORDER BY f.\"creationDate\" DESC LIMIT $2 OFFSET $3";
+const queryGetActiveFriendRequestList:string = "SELECT u.\"id\", u.\"username\", u.\"creationDate\", \"profilePicture\", \"firstName\", \"lastName\" FROM \"friend\" f INNER JOIN \"user\" u ON f.\"from\" = u.\"id\" LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE f.\"accepted\" = 0 AND f.\"to\" = $1 ORDER BY f.\"creationDate\" DESC LIMIT $2 OFFSET $3";
+const queryGetPendingFriendRequestList:string = "SELECT u.\"id\", u.\"username\", u.\"creationDate\", \"profilePicture\", \"firstName\", \"lastName\" FROM \"friend\" f INNER JOIN \"user\" u ON f.\"to\" = u.\"id\" LEFT JOIN \"user_detail\" ud ON ud.\"userID\" = u.\"id\" WHERE f.\"accepted\" = 0 AND f.\"from\" = $1 ORDER BY f.\"creationDate\" DESC LIMIT $2 OFFSET $3";
 
 const queryCreateFriendRequest:string = "INSERT INTO \"friend\"(\"from\", \"to\", \"accepted\", \"creationDate\") VALUES ($1, $2, 0, NOW())";
 const queryCancelFriendRequest:string = "UPDATE \"friend\" SET \"accepted\" = 2 WHERE \"accepted\" = 0 AND \"from\" = $1 AND \"to\" = $2";
@@ -58,11 +57,10 @@ export async function getUserByUsernameAndPass(username:string, password:string)
     }
 
     try {
-        console.log("one")
-
         let result = await connection.query<User>(querySelectUserAndPass, [username, password]);
-        console.log("Here")
-        return result.rows;
+        if (result.rows.length !== 1)
+            return null;
+        return result.rows[0];
     }
     catch (e) {
         console.error(e);
@@ -78,7 +76,9 @@ export async function getUserByUsernameAndCode(username:string, code:string) {
 
     try {
         let result = await connection.query<User>(querySelectUserAndRelogin, [username, code]);
-        return result.rows;
+        if (result.rows.length !== 1)
+            return null;
+        return result.rows[0];
     }
     catch (e) {
         console.error(e);

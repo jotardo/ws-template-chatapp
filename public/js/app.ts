@@ -60,7 +60,7 @@
 
     wsOpen.addEventListener('click', () => {
         closeConnection();
-        let url = `wss://${window.location.hostname}${window.location.hostname === "localhost" ? `:4000` : ""}/chat`
+        let url = `${window.location.hostname === "localhost" ? "ws" : "wss"}://${window.location.hostname}${window.location.hostname === "localhost" ? `:4000` : ""}/chat`
         console.log(url)
         ws = new WebSocket(url) as WebSocketExt;
 

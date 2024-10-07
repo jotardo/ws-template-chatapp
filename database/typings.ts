@@ -5,6 +5,8 @@ export interface User {
     creationDate: Date,
     lastOnlineDate: Date,
     reloginCode: string,
+    firstName:string,
+    lastName:string,
     profilePicture: string,
 }
 

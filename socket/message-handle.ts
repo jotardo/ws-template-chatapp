@@ -83,7 +83,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
             }
         } else {
             let data = await getUserByUsernameAndPass(request.data.username, request.data.password);
-            response.data.success = data != null && data.length == 1;
+            response.data.success = data != null;
             if (response.data.success) {
                 wss.clients.forEach((wsItem) => {
                     let wse = wsItem as WebSocketExt;
@@ -94,12 +94,9 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                 });
                 const newCode = makeid(8);
                 response.data.message = `Logged in as "${request.data.username}"`;
-                response.data.username = request.data.username;
-                response.data.code = newCode;
+                response.data.data = {...data, reloginCode: newCode};
                 if (data) {
-                    currentSocket.username = data[0].username;
-                    response.data.lastLoginDate = data[0].lastOnlineDate;
-                    response.data.profilePicture = data[0].profilePicture;
+                    currentSocket.username = data.username;
                 }
                 await updateReloginCode(request.data.username, newCode);
             } else {
@@ -122,7 +119,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
             }
         } else {
             let data = await getUserByUsernameAndCode(request.data.username, request.data.code);
-            response.data.success = data != null && data.length == 1;
+            response.data.success = data != null;
             if (response.data.success) {
                 wss.clients.forEach((wsItem) => {
                     let wse = wsItem as WebSocketExt;
@@ -134,12 +131,9 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                 const newCode = makeid(8);
                 await updateReloginCode(request.data.username, newCode);
                 response.data.message = `Logged in as "${request.data.username}"`;
-                response.data.username = request.data.username;
-                response.data.code = newCode;
+                response.data.data = {...data, reloginCode: newCode};
                 if (data) {
-                    currentSocket.username = data[0].username;
-                    response.data.lastLoginDate = data[0].lastOnlineDate;
-                    response.data.profilePicture = data[0].profilePicture;
+                    currentSocket.username = data.username;
                 }
             } else {
                 response.data.message = "Username and/or password is not correct";
@@ -205,6 +199,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                 type: "RECEIVE_MESSAGE",
                 data: {from: currentSocket.username, to: request.data.to, content: request.data.content, success: true, message: "Received a message", at: new Date().toString()}
             };
+            if (result)
             wss.clients.forEach((wsItem) => {
                 let wse = wsItem as WebSocketExt;
                 if (wse.username === request?.data.to) {
@@ -396,6 +391,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                         type: "RECEIVE_FRIEND_REQUEST",
                         data: {from: exists, success: true, message: "Received a friend request"}
                     };
+                    if (result)
                     wss.clients.forEach((wsItem) => {
                         let wse = wsItem as WebSocketExt;
                         if (wse.username === request?.data.to) {
@@ -441,6 +437,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                     type: "ACCEPT_FRIEND_REQUEST",
                     data: {from: request.data.from, to: currentSocket.username, success: true, message: `You and "${request.data.from}" became friends`}
                 };
+                if (result)
                 wss.clients.forEach((wsItem) => {
                     let wse = wsItem as WebSocketExt;
                     if (wse.username === request?.data.from) {
@@ -484,6 +481,7 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
                     type: "REJECT_FRIEND_REQUEST",
                     data: {from: request.data.from, to: currentSocket.username, success: true, message: `"${request.data.from}" has reject your friend request`}
                 };
+                if (result)
                 wss.clients.forEach((wsItem) => {
                     let wse = wsItem as WebSocketExt;
                     if (wse.username === request?.data.from) {
@@ -494,6 +492,21 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
         }
     }
 
+    async function doGetUser() {
+        if (!request) return;
+        if (!request.data.username) {
+            response.data.success = false;
+            response.data.message = `No "username" found`;
+        } else {
+            let user = await getUserByUsername(request.data.username);
+            response.data.success = user != null;
+            response.data.message = user != null ? `Successfully get user info of "${request.data.username}"` : `Couldn't get user info of "${request.data.username}"`;
+            response.data.username = request.data.username;
+            response.data.data = user;
+        }
+        ws.send(JSON.stringify(response));
+    }
+
     if (request.type === "REGISTER") {
         await doRegister();
     } else if (request.type === "LOGIN") {
@@ -502,6 +515,8 @@ async function processMessage(wss: WebSocketServer, ws: WebSocket, data: string)
         await doReLogin();
     } else if (request.type === "LOGOUT") {
         await doLogout();
+    }  else if (request.type === "GET_USER") {
+        await doGetUser();
     } else if (request.type === "CHECK_STATUS") {
         doCheckStatus();
     } else if (request.type === "SEND_MESSAGE") {
